@@ -1,0 +1,100 @@
+name: VectorChord CNPG Image Build
+
+on:
+  workflow_dispatch:  # Allow manual triggers
+    inputs:
+      version:
+        description: 'Image version tag (e.g. 0.1.0)'
+        required: true
+        default: '0.1.0'
+
+jobs:
+  get-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      PGRS_SEMVER: ${{ steps.get_versions.outputs.PGRS_SEMVER }}
+      VECTORCHORD_SEMVER: ${{ steps.get_versions.outputs.VECTORCHORD_SEMVER }}
+      VECTORCHORD_BM25_SEMVER: ${{ steps.get_versions.outputs.VECTORCHORD_BM25_SEMVER }}
+      PG_TOKENIZER_SEMVER: ${{ steps.get_versions.outputs.PG_TOKENIZER_SEMVER }}
+      PGVECTOR_SEMVER: ${{ steps.get_versions.outputs.PGVECTOR_SEMVER }}
+      VERSION_TAG: ${{ github.event.inputs.version }}
+
+    steps:
+      - name: Get latest release versions
+        id: get_versions
+        run: |
+          # Get latest pgvecto.rs version
+          PGRS_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/pgvecto.rs/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "PGRS_SEMVER=${PGRS_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest VectorChord version
+          VECTORCHORD_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/VectorChord/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "VECTORCHORD_SEMVER=${VECTORCHORD_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest VectorChord-bm25 version
+          VECTORCHORD_BM25_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/VectorChord-bm25/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "VECTORCHORD_BM25_SEMVER=${VECTORCHORD_BM25_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest pg_tokenizer.rs version
+          PG_TOKENIZER_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/pg_tokenizer.rs/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "PG_TOKENIZER_SEMVER=${PG_TOKENIZER_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest pgvector version using tags API instead of releases
+          PGVECTOR_SEMVER=$(curl -s https://api.github.com/repos/pgvector/pgvector/tags | jq -r '.[0].name' | sed 's/^v//')
+          echo "PGVECTOR_SEMVER=${PGVECTOR_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Use the version provided by the workflow input
+          echo "VERSION_TAG=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        shell: bash
+
+  build-and-push:
+    needs: ["get-versions"]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        pg_major: ["14", "15", "16", "17"]
+        arch: ["amd64", "arm64"]
+        include:
+          - arch: "amd64"
+            runner: "ubuntu-22.04"
+            platform: "linux/amd64"
+            dockerfile: "./vchord-cnpg/Dockerfile"
+          - arch: "arm64"
+            runner: "ubuntu-22.04-arm"
+            platform: "linux/arm64"
+            dockerfile: "./vchord-cnpg/Dockerfile.arm"
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./vchord-cnpg
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: ${{ matrix.platform }}
+          tags: |
+            modelzai/vchord-cnpg:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.VERSION_TAG }}-${{ matrix.arch }}
+          build-args: |
+            PG_MAJOR=${{ matrix.pg_major }}
+            TARGETARCH=${{ matrix.arch }}
+            LIB_DIR=${{ matrix.runner == 'ubuntu-22.04' && '/usr/lib/x86_64-linux-gnu' || '/usr/lib/aarch64-linux-gnu' }}
+            PGVECTOR_SEMVER=${{ needs.get-versions.outputs.PGVECTOR_SEMVER }}
+            PGRS_SEMVER=${{ needs.get-versions.outputs.PGRS_SEMVER }}
+            VECTORCHORD_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_SEMVER }}
+            VECTORCHORD_BM25_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_BM25_SEMVER }}
+            PG_TOKENIZER_SEMVER=${{ needs.get-versions.outputs.PG_TOKENIZER_SEMVER }}

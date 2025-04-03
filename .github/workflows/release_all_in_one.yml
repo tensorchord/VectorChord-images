@@ -1,0 +1,176 @@
+name: Monthly All-in-One Image Build
+
+on:
+  schedule:
+    # Run on the 1st day of each month
+    - cron: '0 0 1 * *'
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  get-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      PGRS_SEMVER: ${{ steps.get_versions.outputs.PGRS_SEMVER }}
+      VECTORCHORD_SEMVER: ${{ steps.get_versions.outputs.VECTORCHORD_SEMVER }}
+      VECTORCHORD_BM25_SEMVER: ${{ steps.get_versions.outputs.VECTORCHORD_BM25_SEMVER }}
+      PG_TOKENIZER_SEMVER: ${{ steps.get_versions.outputs.PG_TOKENIZER_SEMVER }}
+      PGVECTOR_SEMVER: ${{ steps.get_versions.outputs.PGVECTOR_SEMVER }}
+      DATE_TAG: ${{ steps.get_versions.outputs.DATE_TAG }}
+
+    steps:
+      - name: Get latest release versions
+        id: get_versions
+        run: |
+          # Get latest pgvecto.rs version
+          PGRS_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/pgvecto.rs/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "PGRS_SEMVER=${PGRS_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest VectorChord version
+          VECTORCHORD_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/VectorChord/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "VECTORCHORD_SEMVER=${VECTORCHORD_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest VectorChord-bm25 version
+          VECTORCHORD_BM25_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/VectorChord-bm25/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "VECTORCHORD_BM25_SEMVER=${VECTORCHORD_BM25_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest pg_tokenizer.rs version
+          PG_TOKENIZER_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/pg_tokenizer.rs/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "PG_TOKENIZER_SEMVER=${PG_TOKENIZER_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Get latest pgvector version using tags API instead of releases
+          PGVECTOR_SEMVER=$(curl -s https://api.github.com/repos/pgvector/pgvector/tags | jq -r '.[0].name' | sed 's/^v//')
+          echo "PGVECTOR_SEMVER=${PGVECTOR_SEMVER}" >> $GITHUB_OUTPUT
+          
+          # Set date tag for the image
+          DATE_TAG=$(date +'%Y%m%d')
+          echo "DATE_TAG=${DATE_TAG}" >> $GITHUB_OUTPUT
+        shell: bash
+
+  build-and-push:
+    needs: ["get-versions"]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        pg_major: ["14", "15", "16", "17"]
+        arch: ["amd64", "arm64"]
+        include:
+          - arch: "amd64"
+            runner: "ubuntu-22.04"
+            platform: "linux/amd64"
+          - arch: "arm64"
+            runner: "ubuntu-22.04-arm"
+            platform: "linux/arm64"
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./all-in-one
+          push: true
+          platforms: ${{ matrix.platform }}
+          tags: |
+            tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-${{ matrix.arch }}
+            ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-${{ matrix.arch }}
+          build-args: |
+            PG_MAJOR=${{ matrix.pg_major }}
+            PGVECTOR_SEMVER=${{ needs.get-versions.outputs.PGVECTOR_SEMVER }}
+            PGRS_SEMVER=${{ needs.get-versions.outputs.PGRS_SEMVER }}
+            VECTORCHORD_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_SEMVER }}
+            VECTORCHORD_BM25_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_BM25_SEMVER }}
+            PG_TOKENIZER_SEMVER=${{ needs.get-versions.outputs.PG_TOKENIZER_SEMVER }}
+
+  create-manifests:
+    runs-on: ubuntu-latest
+    needs: ["get-versions", "build-and-push"]
+    strategy:
+      matrix:
+        pg_major: ["14", "15", "16", "17"]
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifest for Docker Hub
+        run: |
+          docker manifest create \
+            tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }} \
+            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}
+
+      - name: Create and push manifest for GHCR
+        run: |
+          docker manifest create \
+            ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }} \
+            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}
+
+  create-latest-tags:
+    runs-on: ubuntu-latest
+    needs: ["get-versions", "create-manifests"]
+    strategy:
+      matrix:
+        pg_major: ["14", "15", "16", "17"]
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push latest version-specific tags
+        run: |
+          # Tag each PostgreSQL version with a 'latest' tag for that version
+          docker manifest create \
+            tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest \
+            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest
+
+          docker manifest create \
+            ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest \
+            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest
