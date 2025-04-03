@@ -103,6 +103,7 @@ jobs:
             VECTORCHORD_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_SEMVER }}
             VECTORCHORD_BM25_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_BM25_SEMVER }}
             PG_TOKENIZER_SEMVER=${{ needs.get-versions.outputs.PG_TOKENIZER_SEMVER }}
+            TARGETARCH=${{ matrix.arch }}
 
   create-manifests:
     runs-on: ubuntu-latest
