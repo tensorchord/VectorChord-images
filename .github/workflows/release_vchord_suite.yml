@@ -92,6 +92,7 @@ jobs:
         with:
           context: ./vchord-suite
           push: true
+          provenance: false
           platforms: ${{ matrix.platform }}
           tags: |
             tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-${{ matrix.arch }}
