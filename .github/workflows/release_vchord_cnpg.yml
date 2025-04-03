@@ -88,7 +88,7 @@ jobs:
           provenance: false
           platforms: ${{ matrix.platform }}
           tags: |
-            modelzai/vchord-cnpg:pg${{ matrix.pg_major }}-v${{ needs.get-versions.outputs.VERSION_TAG }}-${{ matrix.arch }}
+            modelzai/vchord-cnpg:${{ matrix.pg_major }}-v${{ needs.get-versions.outputs.VERSION_TAG }}-${{ matrix.arch }}
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
             TARGETARCH=${{ matrix.arch }}
