@@ -90,12 +90,12 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./all-in-one
+          context: ./vchord-suite
           push: true
           platforms: ${{ matrix.platform }}
           tags: |
-            tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-${{ matrix.arch }}
-            ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-${{ matrix.arch }}
+            tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-${{ matrix.arch }}
+            ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-${{ matrix.arch }}
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
             PGVECTOR_SEMVER=${{ needs.get-versions.outputs.PGVECTOR_SEMVER }}
@@ -127,18 +127,18 @@ jobs:
       - name: Create and push manifest for Docker Hub
         run: |
           docker manifest create \
-            tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }} \
-            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
-            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
-          docker manifest push tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}
+            tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }} \
+            --amend tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}
 
       - name: Create and push manifest for GHCR
         run: |
           docker manifest create \
-            ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }} \
-            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
-            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
-          docker manifest push ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}
+            ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }} \
+            --amend ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}
 
   create-latest-tags:
     runs-on: ubuntu-latest
@@ -164,13 +164,13 @@ jobs:
         run: |
           # Tag each PostgreSQL version with a 'latest' tag for that version
           docker manifest create \
-            tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest \
-            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
-            --amend tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
-          docker manifest push tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest
+            tensorchord/vchord-suite:pg${{ matrix.pg_major }}-latest \
+            --amend tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push tensorchord/vchord-suite:pg${{ matrix.pg_major }}-latest
 
           docker manifest create \
-            ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest \
-            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
-            --amend ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
-          docker manifest push ghcr.io/tensorchord/vectorchord-all-in-one:pg${{ matrix.pg_major }}-latest
+            ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-latest \
+            --amend ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-amd64 \
+            --amend ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-${{ needs.get-versions.outputs.DATE_TAG }}-arm64
+          docker manifest push ghcr.io/tensorchord/vchord-suite:pg${{ matrix.pg_major }}-latest

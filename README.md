@@ -1,13 +1,13 @@
 # VectorChord Images
 
-## All-in-One Image
+## VectorChord Suite Image
 
 ```bash
 docker run   \           
-  --name all-in-one  \
+  --name vchord-suite  \
   -e POSTGRES_PASSWORD=postgres  \
   -p 5432:5432 \
-  -d tensorchord/all-in-one:20250403
+  -d tensorchord/vchord-suite:20250403
 ```
 
 ```sql
