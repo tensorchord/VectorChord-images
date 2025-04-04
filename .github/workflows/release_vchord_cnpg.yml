@@ -150,7 +150,15 @@ jobs:
         # More information here https://github.com/actions/runner/issues/1964
         run: |
           bash /usr/local/bin/docker-entrypoint.sh postgres &
-          sleep 5
+          
+          # Wait for PostgreSQL to be ready
+          echo "Waiting for PostgreSQL to start..."
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "PostgreSQL is not ready yet - waiting..."
+            sleep 2
+          done
+          echo "PostgreSQL is ready!"
+          
           curl https://registry.pgtrunk.io/extensions/all | jq -r ".[] | .name" > /tmp/extensions.txt
           extension-install.sh | tee /tmp/output.txt
-          cat /tmp/output.txt 
+          cat /tmp/output.txt
