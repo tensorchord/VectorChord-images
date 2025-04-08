@@ -10,7 +10,6 @@ FROM modelzai/pg-slim:${PG_MAJOR}-${TARGETARCH}
 ARG PG_MAJOR=16
 ARG TARGETARCH=amd64
 ARG PGVECTOR_SEMVER=0.8.0
-ARG PGRS_SEMVER=0.4.0
 ARG VECTORCHORD_SEMVER=0.2.2
 ARG VECTORCHORD_BM25_SEMVER=0.2.0
 ARG PG_TOKENIZER_SEMVER=0.1.0
@@ -169,10 +168,6 @@ RUN trunk install pgmq --version 1.4.5
 
 # Install pg_later
 RUN trunk install pg_later --version 0.3.0
-
-# Install pgvecto.rs
-RUN wget https://github.com/tensorchord/pgvecto.rs/releases/download/v${PGRS_SEMVER}/vectors-pg${PG_MAJOR}_${PGRS_SEMVER}_${TARGETARCH}.deb -O /tmp/vectors.deb; \
-    dpkg -i /tmp/vectors.deb; 
 
 # Install VectorChord
 RUN wget https://github.com/tensorchord/VectorChord/releases/download/${VECTORCHORD_SEMVER}/postgresql-${PG_MAJOR}-vchord_${VECTORCHORD_SEMVER}-1_${TARGETARCH}.deb -O /tmp/vchord.deb; \
