@@ -10,7 +10,6 @@ jobs:
   get-versions:
     runs-on: ubuntu-latest
     outputs:
-      PGRS_SEMVER: ${{ steps.get_versions.outputs.PGRS_SEMVER }}
       VECTORCHORD_SEMVER: ${{ steps.get_versions.outputs.VECTORCHORD_SEMVER }}
       VECTORCHORD_BM25_SEMVER: ${{ steps.get_versions.outputs.VECTORCHORD_BM25_SEMVER }}
       PG_TOKENIZER_SEMVER: ${{ steps.get_versions.outputs.PG_TOKENIZER_SEMVER }}
@@ -21,10 +20,6 @@ jobs:
       - name: Get latest release versions
         id: get_versions
         run: |
-          # Get latest pgvecto.rs version
-          PGRS_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/pgvecto.rs/releases/latest | jq -r '.tag_name' | sed 's/^v//')
-          echo "PGRS_SEMVER=${PGRS_SEMVER}" >> $GITHUB_OUTPUT
-          
           # Get latest VectorChord version
           VECTORCHORD_SEMVER=$(curl -s https://api.github.com/repos/tensorchord/VectorChord/releases/latest | jq -r '.tag_name' | sed 's/^v//')
           echo "VECTORCHORD_SEMVER=${VECTORCHORD_SEMVER}" >> $GITHUB_OUTPUT
@@ -100,7 +95,6 @@ jobs:
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
             PGVECTOR_SEMVER=${{ needs.get-versions.outputs.PGVECTOR_SEMVER }}
-            PGRS_SEMVER=${{ needs.get-versions.outputs.PGRS_SEMVER }}
             VECTORCHORD_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_SEMVER }}
             VECTORCHORD_BM25_SEMVER=${{ needs.get-versions.outputs.VECTORCHORD_BM25_SEMVER }}
             PG_TOKENIZER_SEMVER=${{ needs.get-versions.outputs.PG_TOKENIZER_SEMVER }}
