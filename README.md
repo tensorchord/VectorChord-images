@@ -43,5 +43,5 @@ vector       | 0.8.0   | public            | vector data type and ivfflat and hn
 |----------------|-------------|---------|
 | vchord | [VectorChord](https://github.com/tensorchord/VectorChord) | 0.2.2   |
 | pg_tokenizer | [pg_tokenizer.rs](https://github.com/tensorchord/pg_tokenizer.rs) | 0.1.0   |
-| vchord_bm25 | [VectorChord-bm25](https://github.com/tensorchord/VectorChord-bm25) | 0.2.0   |
+| vchord_bm25 | [VectorChord-bm25](https://github.com/tensorchord/VectorChord-bm25) | 0.2.1   |
 | vector | [pgvector](https://github.com/pgvector/pgvector) | 0.8.0   |
