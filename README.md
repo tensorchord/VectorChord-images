@@ -4,8 +4,7 @@ This repository contains the resources to build VectorChord Suite images and the
 
 ## VectorChord Suite Image
 
-You can use the `tensorchord/vchord-suite` image to run multi extensions which are provided by TensorChord. The image is based on the official Postgres image and includes the following extensions:
-
+You can use the `tensorchord/vchord-suite` image to run multiple extensions which are provided by TensorChord. The image is based on the official Postgres image and includes the following extensions:
 ```bash
 docker run   \           
   --name vchord-suite  \
