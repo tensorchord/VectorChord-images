@@ -10,9 +10,9 @@ docker run   \
   --name vchord-suite  \
   -e POSTGRES_PASSWORD=postgres  \
   -p 5432:5432 \
-  -d tensorchord/vchord-suite:pg17-20250408
-  # If you want to use ghcr image, you can change the image to `ghcr.io/tensorchord/vchord-suite:pg17-20250408`.
-  # if you want to use the latest version, you can use the tag `pg17-latest`.
+  -d tensorchord/vchord-suite:pg17-latest
+  # If you want to use ghcr image, you can change the image to `ghcr.io/tensorchord/vchord-suite:pg17-latest`.
+  # if you want to use the specific version, you can use the tag `pg17-20250414`, supported version can be found in the support matrix.
 ```
 
 ```sql
@@ -37,7 +37,16 @@ vector       | 0.8.0   | public            | vector data type and ivfflat and hn
 
 ### Extension Compatibility
 
-#### 2023-04-08 & latest
+#### 2025-04-14 & latest
+
+| Extension Name | Github Repo | Version |
+|----------------|-------------|---------|
+| vchord | [VectorChord](https://github.com/tensorchord/VectorChord) | 0.3.0   |
+| pg_tokenizer | [pg_tokenizer.rs](https://github.com/tensorchord/pg_tokenizer.rs) | 0.1.0   |
+| vchord_bm25 | [VectorChord-bm25](https://github.com/tensorchord/VectorChord-bm25) | 0.2.1   |
+| vector | [pgvector](https://github.com/pgvector/pgvector) | 0.8.0   |
+
+#### 2025-04-08
 
 | Extension Name | Github Repo | Version |
 |----------------|-------------|---------|
