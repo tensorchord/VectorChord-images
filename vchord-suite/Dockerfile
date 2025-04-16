@@ -27,4 +27,4 @@ RUN wget https://github.com/tensorchord/pg_tokenizer.rs/releases/download/${PG_T
     dpkg -i /tmp/pg-tokenizer.deb; \
     rm -rf /tmp/*.deb
 
-CMD ["postgres", "-c" ,"shared_preload_libraries=vchord.so, pg_tokenizer.so", "-c", "search_path=\"$user\", public, tokenizer_catalog"]
+CMD ["postgres", "-c" ,"shared_preload_libraries=vchord.so, pg_tokenizer.so", "-c", "search_path=\"$user\", public, bm25_catalog, tokenizer_catalog"]
