@@ -169,6 +169,9 @@ RUN trunk install pgmq --version 1.4.5
 # Install pg_later
 RUN trunk install pg_later --version 0.3.0
 
+# Install uuid_ossp
+RUN trunk install uuid_ossp
+
 # Install VectorChord
 RUN wget https://github.com/tensorchord/VectorChord/releases/download/${VECTORCHORD_SEMVER}/postgresql-${PG_MAJOR}-vchord_${VECTORCHORD_SEMVER}-1_${TARGETARCH}.deb -O /tmp/vchord.deb; \
     dpkg -i /tmp/vchord.deb;

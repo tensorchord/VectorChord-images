@@ -62,6 +62,9 @@ RUN pig ext install -y plpython3u
 # Install pg_later
 RUN pig ext install -y pg_later=0.3.0
 
+# Install uuid_ossp
+RUN pig ext install -y uuid-ossp
+
 # Install VectorChord
 RUN wget https://github.com/tensorchord/VectorChord/releases/download/${VECTORCHORD_SEMVER}/postgresql-${PG_MAJOR}-vchord_${VECTORCHORD_SEMVER}-1_${TARGETARCH}.deb -O /tmp/vchord.deb; \
     dpkg -i /tmp/vchord.deb;
