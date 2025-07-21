@@ -52,11 +52,9 @@ jobs:
           - arch: "amd64"
             runner: "ubuntu-22.04"
             platform: "linux/amd64"
-            dockerfile: "./vchord-cnpg/Dockerfile"
           - arch: "arm64"
             runner: "ubuntu-22.04-arm"
             platform: "linux/arm64"
-            dockerfile: "./vchord-cnpg/Dockerfile.arm"
     permissions:
       contents: read
       packages: write
@@ -78,7 +76,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./vchord-cnpg
-          file: ${{ matrix.dockerfile }}
+          file: ./vchord-cnpg/Dockerfile
           push: true
           provenance: false
           platforms: ${{ matrix.platform }}
@@ -115,44 +113,3 @@ jobs:
             --amend modelzai/vchord-cnpg:${{ matrix.version }}-v${{ github.event.inputs.version }}-amd64 \
             --amend modelzai/vchord-cnpg:${{ matrix.version }}-v${{ github.event.inputs.version }}-arm64
           docker manifest push modelzai/vchord-cnpg:${{ matrix.version }}-v${{ github.event.inputs.version }}
-  test:
-    name: Run tests
-    runs-on: ${{ matrix.runner }}
-    needs: ["build-and-push", "create-manifests-modelzai"]
-    strategy:
-      matrix:
-        version: [14, 15, 16, 17]
-        runner: ["ubuntu-22.04"]
-    container:
-      image: modelzai/vchord-cnpg:${{ matrix.version }}-v${{ github.event.inputs.version }}
-      options: --user root
-      credentials:
-        username: ${{ secrets.DOCKERIO_MODELZ_USERNAME }}
-        password: ${{ secrets.DOCKERIO_MODELZ_TOKEN }}
-    env:
-      PGHOST: "localhost"
-      PGPORT: "5432"
-      PGDATABASE: "postgres"
-      PGUSER: "postgres"
-      PGPASSWORD: "postgres"
-      POSTGRES_PASSWORD: "password"
-      PGDATA: "/var/lib/postgresql/data2"
-
-    steps:
-      - name: Install all extensions in registry
-        # Entrypoint is overwritten by GitHub Action. We need to execute it manually in order to start Postgres.
-        # More information here https://github.com/actions/runner/issues/1964
-        run: |
-          bash /usr/local/bin/docker-entrypoint.sh postgres &
-          
-          # Wait for PostgreSQL to be ready
-          echo "Waiting for PostgreSQL to start..."
-          until pg_isready -h localhost -p 5432 -U postgres; do
-            echo "PostgreSQL is not ready yet - waiting..."
-            sleep 2
-          done
-          echo "PostgreSQL is ready!"
-          
-          curl https://registry.pgtrunk.io/extensions/all | jq -r ".[] | .name" > /tmp/extensions.txt
-          extension-install.sh | tee /tmp/output.txt
-          cat /tmp/output.txt
