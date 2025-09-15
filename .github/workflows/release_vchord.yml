@@ -63,7 +63,7 @@ jobs:
             PGVECTOR=${{ needs.versions.outputs.PGVECTOR }}
 
   create-manifests:
-    needs: ["docker"]
+    needs: ["versions", "docker"]
     runs-on: ubuntu-latest
     strategy:
       matrix:
