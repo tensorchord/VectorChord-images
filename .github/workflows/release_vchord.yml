@@ -26,6 +26,9 @@ jobs:
       matrix:
         pg_major: ["14", "15", "16", "17"]
         platform: ["amd64", "arm64"]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
