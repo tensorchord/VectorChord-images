@@ -24,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.platform == 'amd64' && 'ubuntu-22.04' || 'ubuntu-22.04-arm' }}
     strategy:
       matrix:
-        pg_major: ["14", "15", "16", "17"]
+        pg_major: ["14", "15", "16", "17", "18"]
         platform: ["amd64", "arm64"]
     permissions:
       contents: read
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pg_major: ["14", "15", "16", "17"]
+        pg_major: ["14", "15", "16", "17", "18"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
