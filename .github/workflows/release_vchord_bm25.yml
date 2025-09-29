@@ -63,8 +63,8 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           provenance: false
           tags: |
-            tensorchord/vchord_bm25-postgres:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORD }}-${{ matrix.platform }}
-            ghcr.io/tensorchord/vchord_bm25-postgres:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORD }}-${{ matrix.platform }}
+            tensorchord/vchord_bm25-postgres:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-${{ matrix.platform }}
+            ghcr.io/tensorchord/vchord_bm25-postgres:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-${{ matrix.platform }}
           build-args: |
             BASE=${{ matrix.pg_major }}-bookworm
             VCHORDBM25=${{ needs.versions.outputs.VCHORDBM25 }}
