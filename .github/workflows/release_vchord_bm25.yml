@@ -1,4 +1,4 @@
-name: VectorChord
+name: VectorChord-bm25
 
 on:
   workflow_dispatch:
