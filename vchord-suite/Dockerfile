@@ -1,30 +1,23 @@
-ARG PG_MAJOR=16
-ARG PGVECTOR_SEMVER=0.8.0
-FROM pgvector/pgvector:${PGVECTOR_SEMVER}-pg${PG_MAJOR}
+ARG BASE=18-bookworm
 
-ARG VECTORCHORD_SEMVER=0.2.2
-ARG VECTORCHORD_BM25_SEMVER=0.2.0
-ARG PG_TOKENIZER_SEMVER=0.1.0
-ARG TARGETARCH=amd64
+FROM postgres:${BASE}
 
-RUN set -eux; \
-    apt-get update && apt-get install -y \
-    wget; \
-    apt-get autoremove -y; \
-    apt-get clean -y; \
-    rm -rf /var/lib/apt/lists/*
+ARG VCHORDBM25
+ARG PGTOKENIZER
+ARG VCHORD
+ARG PGVECTOR
 
-# Install VectorChord
-RUN wget https://github.com/tensorchord/VectorChord/releases/download/${VECTORCHORD_SEMVER}/postgresql-${PG_MAJOR}-vchord_${VECTORCHORD_SEMVER}-1_${TARGETARCH}.deb -O /tmp/vchord.deb; \
-    dpkg -i /tmp/vchord.deb;
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    wget https://github.com/tensorchord/VectorChord-bm25/releases/download/${VCHORDBM25}/postgresql-${PG_MAJOR}-vchord-bm25_${VCHORDBM25}-1_$(dpkg --print-architecture).deb -P /tmp && \
+    wget https://github.com/tensorchord/pg_tokenizer.rs/releases/download/${PGTOKENIZER}/postgresql-${PG_MAJOR}-pg-tokenizer_${PGTOKENIZER}-1_$(dpkg --print-architecture).deb -P /tmp && \
+    wget https://github.com/tensorchord/VectorChord/releases/download/${VCHORD}/postgresql-${PG_MAJOR}-vchord_${VCHORD}-1_$(dpkg --print-architecture).deb -P /tmp && \
+    apt-get install -y postgresql-${PG_MAJOR}-pgvector=${PGVECTOR}-* && \
+    apt-get install -y /tmp/postgresql-${PG_MAJOR}-vchord_${VCHORD}-1_$(dpkg --print-architecture).deb && \
+    apt-get install -y /tmp/postgresql-${PG_MAJOR}-pg-tokenizer_${PGTOKENIZER}-1_$(dpkg --print-architecture).deb && \
+    apt-get install -y /tmp/postgresql-${PG_MAJOR}-vchord-bm25_${VCHORDBM25}-1_$(dpkg --print-architecture).deb && \
+    apt-get remove -y wget ca-certificates && \
+    apt-get purge -y --auto-remove && \
+    rm -rf /tmp/* /var/lib/apt/lists/*
 
-# Install VectorChord-bm25
-RUN wget https://github.com/tensorchord/VectorChord-bm25/releases/download/${VECTORCHORD_BM25_SEMVER}/postgresql-${PG_MAJOR}-vchord-bm25_${VECTORCHORD_BM25_SEMVER}-1_${TARGETARCH}.deb -O /tmp/vchord-bm25.deb; \
-    dpkg -i /tmp/vchord-bm25.deb;
-
-# Install pg_tokenizer.rs
-RUN wget https://github.com/tensorchord/pg_tokenizer.rs/releases/download/${PG_TOKENIZER_SEMVER}/postgresql-${PG_MAJOR}-pg-tokenizer_${PG_TOKENIZER_SEMVER}-1_${TARGETARCH}.deb -O /tmp/pg-tokenizer.deb; \
-    dpkg -i /tmp/pg-tokenizer.deb; \
-    rm -rf /tmp/*.deb
-
-CMD ["postgres", "-c" ,"shared_preload_libraries=vchord.so, pg_tokenizer.so", "-c", "search_path=\"$user\", public, bm25_catalog, tokenizer_catalog"]
+CMD ["postgres", "-c" ,"shared_preload_libraries=vchord,vchord_bm25,vector,pg_tokenizer", "-c", "search_path=\"$user\", public, bm25_catalog, tokenizer_catalog"]
