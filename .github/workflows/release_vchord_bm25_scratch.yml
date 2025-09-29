@@ -46,7 +46,7 @@ jobs:
       - name: Push build to Docker Registry
         uses: docker/build-push-action@v6
         with:
-          context: ./vchord_bm25_scratch
+          context: ./vchord_bm25-scratch
           push: true
           platforms: linux/${{ matrix.platform }}
           provenance: false
