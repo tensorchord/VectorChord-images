@@ -14,11 +14,11 @@ jobs:
       PGTOKENIZER: ${{ steps.versions.outputs.PGTOKENIZER }}
       VCHORD: ${{ steps.versions.outputs.VCHORD }}
       PGVECTOR: ${{ steps.versions.outputs.PGVECTOR }}
-      DATE_TAG: ${{ steps.get_versions.outputs.DATE_TAG }}
+      DATE_TAG: ${{ steps.versions.outputs.DATE_TAG }}
 
     steps:
       - name: Get latest release versions
-        id: get_versions
+        id: versions
         run: |
           VCHORDBM25=$(curl -s https://api.github.com/repos/tensorchord/VectorChord-bm25/releases/latest | jq -r '.tag_name' | sed 's/^v//')
           echo "VCHORDBM25=${VCHORDBM25}" >> $GITHUB_OUTPUT
@@ -34,7 +34,6 @@ jobs:
 
           DATE_TAG=$(date +'%Y%m%d')
           echo "DATE_TAG=${DATE_TAG}" >> $GITHUB_OUTPUT
-        shell: bash
 
   docker:
     needs: ["versions"]
