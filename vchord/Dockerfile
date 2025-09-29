@@ -1,4 +1,4 @@
-ARG BASE=17-bookworm
+ARG BASE=18-bookworm
 
 FROM postgres:${BASE}
 
@@ -14,4 +14,4 @@ RUN apt-get update && \
 	apt-get purge -y --auto-remove && \
 	rm -rf /tmp/* /var/lib/apt/lists/*
 
-CMD ["postgres", "-c" ,"shared_preload_libraries=vchord"]
+CMD ["postgres", "-c" ,"shared_preload_libraries=vchord,vector"]
