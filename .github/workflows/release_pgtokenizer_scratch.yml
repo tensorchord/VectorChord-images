@@ -1,0 +1,93 @@
+name: pg_tokenizer.rs Scratch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  versions:
+    runs-on: ubuntu-latest
+    outputs:
+      PGTOKENIZER: ${{ steps.versions.outputs.PGTOKENIZER }}
+    steps:
+      - name: Get latest versions
+        id: versions
+        run: |
+          PGTOKENIZER=$(curl -s https://api.github.com/repos/tensorchord/pg_tokenizer.rs/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "PGTOKENIZER=${PGTOKENIZER}" >> $GITHUB_OUTPUT
+
+  docker:
+    needs: ["versions"]
+    runs-on: ${{ matrix.platform == 'amd64' && 'ubuntu-22.04' || 'ubuntu-22.04-arm' }}
+    strategy:
+      matrix:
+        pg_major: ["14", "15", "16", "17", "18"]
+        platform: ["amd64", "arm64"]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_TOKEN }}
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push build to Docker Registry
+        uses: docker/build-push-action@v6
+        with:
+          context: ./pg_tokenizer-scratch
+          push: true
+          platforms: linux/${{ matrix.platform }}
+          provenance: false
+          tags: |
+            tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-${{ matrix.platform }}
+            ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-${{ matrix.platform }}
+          build-args: |
+            BASE=${{ matrix.pg_major }}-bookworm
+            PGTOKENIZER=${{ needs.versions.outputs.PGTOKENIZER }}
+
+  create-manifests:
+    needs: ["versions", "docker"]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pg_major: ["14", "15", "16", "17", "18"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERIO_USERNAME }}
+          password: ${{ secrets.DOCKERIO_TOKEN }}
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create manifest and push
+        run: |
+          docker manifest create \
+            tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }} \
+            --amend tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-amd64 \
+            --amend tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-arm64
+          docker manifest push tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}
+          docker manifest create \
+            ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }} \
+            --amend ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-amd64 \
+            --amend ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-arm64
+          docker manifest push ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}
