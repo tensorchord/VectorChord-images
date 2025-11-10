@@ -7,13 +7,13 @@ jobs:
   versions:
     runs-on: ubuntu-latest
     outputs:
-      VECTORCHORD: ${{ steps.versions.outputs.VECTORCHORD }}
+      VCHORD: ${{ steps.versions.outputs.VCHORD }}
     steps:
       - name: Get latest versions
         id: versions
         run: |
-          VECTORCHORD=$(curl -s https://api.github.com/repos/tensorchord/VectorChord/releases/latest | jq -r '.tag_name' | sed 's/^v//')
-          echo "VECTORCHORD=${VECTORCHORD}" >> $GITHUB_OUTPUT
+          VCHORD=$(curl -s https://api.github.com/repos/tensorchord/VectorChord/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "VCHORD=${VCHORD}" >> $GITHUB_OUTPUT
 
   docker:
     needs: ["versions"]
@@ -51,18 +51,15 @@ jobs:
           platforms: linux/${{ matrix.platform }}
           provenance: false
           tags: |
-            tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}-${{ matrix.platform }}
-            ghcr.io/tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}-${{ matrix.platform }}
+            tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORD }}-${{ matrix.platform }}
+            ghcr.io/tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORD }}-${{ matrix.platform }}
           build-args: |
             BASE=${{ matrix.pg_major }}-bookworm
-            VCHORD=${{ needs.versions.outputs.VECTORCHORD }}
+            VCHORD=${{ needs.versions.outputs.VCHORD }}
 
   create-manifests:
     needs: ["versions", "docker"]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        pg_major: ["14", "15", "16", "17", "18"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,13 +78,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Create manifest and push
         run: |
-          docker manifest create \
-            tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }} \
-            --amend tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}-amd64 \
-            --amend tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}-arm64
-          docker manifest push tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}
-          docker manifest create \
-            ghcr.io/tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }} \
-            --amend ghcr.io/tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}-amd64 \
-            --amend ghcr.io/tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}-arm64
-          docker manifest push ghcr.io/tensorchord/vchord-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VECTORCHORD }}
+          NAME=vchord-scratch
+          SEMVER=${{ needs.versions.outputs.VCHORD }}
+          for PG_MAJOR in 14 15 16 17 18; do
+            docker manifest create \
+              tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER} \
+              --amend tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-amd64 \
+              --amend tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-arm64
+            docker manifest push tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}
+            docker manifest create \
+              ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER} \
+              --amend ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-amd64 \
+              --amend ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-arm64
+            docker manifest push ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}
+          done
