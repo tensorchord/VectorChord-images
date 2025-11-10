@@ -1,4 +1,4 @@
-name: pg_tokenizer.rs Scratch
+name: VectorChord-bm25 PostgreSQL
 
 on:
   workflow_dispatch:
@@ -7,13 +7,25 @@ jobs:
   versions:
     runs-on: ubuntu-latest
     outputs:
+      VCHORDBM25: ${{ steps.versions.outputs.VCHORDBM25 }}
       PGTOKENIZER: ${{ steps.versions.outputs.PGTOKENIZER }}
+      VCHORD: ${{ steps.versions.outputs.VCHORD }}
+      PGVECTOR: ${{ steps.versions.outputs.PGVECTOR }}
     steps:
       - name: Get latest versions
         id: versions
         run: |
+          VCHORDBM25=$(curl -s https://api.github.com/repos/tensorchord/VectorChord-bm25/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "VCHORDBM25=${VCHORDBM25}" >> $GITHUB_OUTPUT
+
           PGTOKENIZER=$(curl -s https://api.github.com/repos/tensorchord/pg_tokenizer.rs/releases/latest | jq -r '.tag_name' | sed 's/^v//')
           echo "PGTOKENIZER=${PGTOKENIZER}" >> $GITHUB_OUTPUT
+
+          VCHORD=$(curl -s https://api.github.com/repos/tensorchord/VectorChord/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "VCHORD=${VCHORD}" >> $GITHUB_OUTPUT
+
+          PGVECTOR=$(curl -s https://api.github.com/repos/pgvector/pgvector/tags | jq -r '.[0].name' | sed 's/^v//')
+          echo "PGVECTOR=${PGVECTOR}" >> $GITHUB_OUTPUT
 
   docker:
     needs: ["versions"]
@@ -46,23 +58,23 @@ jobs:
       - name: Push build to Docker Registry
         uses: docker/build-push-action@v6
         with:
-          context: ./pg_tokenizer-scratch
+          context: ./vchord_bm25
           push: true
           platforms: linux/${{ matrix.platform }}
           provenance: false
           tags: |
-            tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-${{ matrix.platform }}
-            ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-${{ matrix.platform }}
+            tensorchord/vchord_bm25-postgres:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-${{ matrix.platform }}
+            ghcr.io/tensorchord/vchord_bm25-postgres:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-${{ matrix.platform }}
           build-args: |
             BASE=${{ matrix.pg_major }}-bookworm
+            VCHORDBM25=${{ needs.versions.outputs.VCHORDBM25 }}
             PGTOKENIZER=${{ needs.versions.outputs.PGTOKENIZER }}
+            VCHORD=${{ needs.versions.outputs.VCHORD }}
+            PGVECTOR=${{ needs.versions.outputs.PGVECTOR }}
 
   create-manifests:
     needs: ["versions", "docker"]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        pg_major: ["14", "15", "16", "17", "18"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,13 +93,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Create manifest and push
         run: |
-          docker manifest create \
-            tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }} \
-            --amend tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-amd64 \
-            --amend tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-arm64
-          docker manifest push tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}
-          docker manifest create \
-            ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }} \
-            --amend ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-amd64 \
-            --amend ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}-arm64
-          docker manifest push ghcr.io/tensorchord/pg_tokenizer-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.PGTOKENIZER }}
+          NAME=vchord_bm25-postgres
+          SEMVER=${{ needs.versions.outputs.VCHORDBM25 }}
+          for PG_MAJOR in 14 15 16 17 18; do
+            docker manifest create \
+              tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER} \
+              --amend tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-amd64 \
+              --amend tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-arm64
+            docker manifest push tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}
+            docker manifest create \
+              ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER} \
+              --amend ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-amd64 \
+              --amend ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-arm64
+            docker manifest push ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}
+          done

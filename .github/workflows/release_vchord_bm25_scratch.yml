@@ -60,9 +60,6 @@ jobs:
   create-manifests:
     needs: ["versions", "docker"]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        pg_major: ["14", "15", "16", "17", "18"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,13 +78,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Create manifest and push
         run: |
-          docker manifest create \
-            tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }} \
-            --amend tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-amd64 \
-            --amend tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-arm64
-          docker manifest push tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}
-          docker manifest create \
-            ghcr.io/tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }} \
-            --amend ghcr.io/tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-amd64 \
-            --amend ghcr.io/tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}-arm64
-          docker manifest push ghcr.io/tensorchord/vchord_bm25-scratch:pg${{ matrix.pg_major }}-v${{ needs.versions.outputs.VCHORDBM25 }}
+          NAME=vchord_bm25-scratch
+          SEMVER=${{ needs.versions.outputs.VCHORDBM25 }}
+          for PG_MAJOR in 14 15 16 17 18; do
+            docker manifest create \
+              tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER} \
+              --amend tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-amd64 \
+              --amend tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-arm64
+            docker manifest push tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}
+            docker manifest create \
+              ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER} \
+              --amend ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-amd64 \
+              --amend ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}-arm64
+            docker manifest push ghcr.io/tensorchord/${NAME}:pg${PG_MAJOR}-v${SEMVER}
+          done
