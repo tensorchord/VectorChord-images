@@ -46,7 +46,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        pg_major: ["14", "15", "16", "17"]
+        pg_major: ["14", "15", "16", "17", "18"]
         arch: ["amd64", "arm64"]
         include:
           - arch: "amd64"
@@ -95,7 +95,7 @@ jobs:
     needs: ["build-and-push"]
     strategy:
       matrix:
-        version: ["14", "15", "16", "17"]
+        version: ["14", "15", "16", "17", "18"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
