@@ -46,7 +46,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        pg_major: ["14", "15", "16", "17", "18"]
+        pg_major: ["14", "15", "16", "17"]
         arch: ["amd64", "arm64"]
         include:
           - arch: "amd64"
