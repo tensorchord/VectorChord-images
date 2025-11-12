@@ -60,7 +60,7 @@ RUN pig ext install -y auto_explain
 RUN pig ext install -y plpython3u
 
 # Install pg_later
-RUN pig ext install -y pg_later=0.3.0
+RUN pig ext install -y pg_later=0.3.1
 
 # Install uuid_ossp
 RUN pig ext install -y uuid-ossp
