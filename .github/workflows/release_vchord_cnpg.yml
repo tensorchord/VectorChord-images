@@ -95,7 +95,7 @@ jobs:
     needs: ["build-and-push"]
     strategy:
       matrix:
-        version: ["14", "15", "16", "17"]
+        version: ["14", "15", "16", "17", "18"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
