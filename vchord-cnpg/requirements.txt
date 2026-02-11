@@ -4,9 +4,9 @@
 #
 #    pip-compile --generate-hashes
 #
-azure-core==1.35.0 \
-    --hash=sha256:8db78c72868a58f3de8991eb4d22c4d368fae226dac1002998d6c50437e7dad1 \
-    --hash=sha256:c0be528489485e9ede59b6971eb63c1eaacf83ef53001bfe3904e475e972be5c
+azure-core==1.38.0 \
+    --hash=sha256:8194d2682245a3e4e3151a667c686464c3786fed7918b394d035bdcd61bb5993 \
+    --hash=sha256:ab0c9b2cd71fecb1842d52c965c95285d3cfb38902f6766e4a471f1cd8905335
     # via
     #   azure-identity
     #   azure-storage-blob
